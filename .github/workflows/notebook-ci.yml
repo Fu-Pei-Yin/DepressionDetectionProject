@@ -1,36 +1,39 @@
-# This is a basic workflow to help you get started with Actions
+import nbformat as nbf
+from pathlib import Path
 
-name: CI
+# 儲存位置
+notebooks_path = Path("/mnt/data/DepressionDetectionProject/notebooks")
 
-# Controls when the workflow will run
-on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+# 建立 notebook 初版內容
+notebook_cells = {
+    "01_data_preprocessing.ipynb": [
+        nbf.v4.new_markdown_cell("# 📦 Data Preprocessing\n這份 Notebook 處理原始對話資料與音訊切分。"),
+        nbf.v4.new_code_cell("""import json, pandas as pd\nfrom pathlib import Path\n\n# 讀取範例資料\nwith open('../data/sample_dialogue.json') as f:\n    data = json.load(f)\n\nfor turn in data['turns']:\n    print(f"{turn['speaker']}: {turn['text']}")""")
+    ],
+    "02_feature_extraction.ipynb": [
+        nbf.v4.new_markdown_cell("# 🔍 Feature Extraction\n這份 Notebook 提取文字與語音的模型特徵。"),
+        nbf.v4.new_code_cell("""from transformers import AutoTokenizer, AutoModel\nimport torch\n\ntext = \"I’ve been feeling low and tired.\"\ntokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')\nmodel = AutoModel.from_pretrained('bert-base-uncased')\n\ninputs = tokenizer(text, return_tensors='pt')\noutputs = model(**inputs)\nprint(outputs.last_hidden_state.shape)""")
+    ],
+    "03_model_training.ipynb": [
+        nbf.v4.new_markdown_cell("# 🤖 Model Training\n這份 Notebook 執行模型訓練流程並儲存模型參數。"),
+        nbf.v4.new_code_cell("""from sklearn.linear_model import LogisticRegression\nfrom sklearn.datasets import make_classification\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import accuracy_score\n\nX, y = make_classification(n_samples=100, n_features=10, random_state=42)\nX_train, X_test, y_train, y_test = train_test_split(X, y)\nmodel = LogisticRegression().fit(X_train, y_train)\nprint(\"Accuracy:\", accuracy_score(y_test, model.predict(X_test)))""")
+    ],
+    "04_evaluation.ipynb": [
+        nbf.v4.new_markdown_cell("# 📊 Evaluation\n這份 Notebook 評估訓練模型的表現（Accuracy、F1、混淆矩陣等）。"),
+        nbf.v4.new_code_cell("""from sklearn.metrics import classification_report, confusion_matrix\nimport numpy as np\n\n# 模擬預測與標籤\ny_true = [0, 1, 1, 0, 1]\ny_pred = [0, 1, 0, 0, 1]\nprint(confusion_matrix(y_true, y_pred))\nprint(classification_report(y_true, y_pred))""")
+    ],
+    "05_generate_virtual_text.ipynb": [
+        nbf.v4.new_markdown_cell("# 🧠 Generate Virtual Text\n這份 Notebook 使用 LLM 產生虛擬貼文，並建立 PHQ-8 對應標籤。"),
+        nbf.v4.new_code_cell("""import openai\n\n# 請填入你的 API Key\nopenai.api_key = \"your-api-key-here\"\n\nprompt = \"模擬一位憂鬱傾向學生的日記內容\"\nresponse = openai.Completion.create(\n    engine=\"text-davinci-003\",\n    prompt=prompt,\n    max_tokens=100\n)\nprint(response['choices'][0]['text'].strip())""")
+    ]
+}
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+# 儲存 notebook
+for fname, cells in notebook_cells.items():
+    nb = nbf.v4.new_notebook()
+    nb['cells'] = cells
+    with open(notebooks_path / fname, "w", encoding="utf-8") as f:
+        nbf.write(nb, f)
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
-
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+# 回傳建立成功的 notebook 檔案名稱
+[p.name for p in notebooks_path.iterdir()]
